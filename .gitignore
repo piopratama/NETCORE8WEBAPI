@@ -1,0 +1,15 @@
+﻿# .NET
+bin/
+obj/
+.vs/
+*.user
+*.suo
+
+# Visual Studio
+.vscode/
+*.dbmdl
+*.DS_Store
+
+# Config
+appsettings.Development.json
+appsettings.Production.json
