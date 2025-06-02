@@ -1,19 +1,51 @@
 ﻿using LearnMicroservice.Models;
 using LearnMicroservice.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Diagnostics;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // =============================
-// 🔧 Register Services
+// 🔐 Authentication & Authorization
 // =============================
-builder.Services.AddSingleton<IMyService, MyService>();          // Singleton
-builder.Services.AddScoped<ScopedService>();                     // Scoped
-builder.Services.AddTransient<TransientService>();               // Transient
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+		.AddJwtBearer(options =>
+		{
+			options.Authority = "https://login.microsoftonline.com/3c65f370-dc3a-4cf7-ac9e-af7e53636aea/v2.0";
+			options.TokenValidationParameters = new TokenValidationParameters
+			{
+				ValidateAudience = true,
+				ValidAudience = "3d6f02fd-479d-4971-a4fa-d7b4e6871678",
+			};
+		});
+
+builder.Services.AddAuthorization();
 
 // =============================
-// 🔧 Enable Swagger
+// 🌐 CORS Configuration
+// =============================
+builder.Services.AddCors(options =>
+{
+	options.AddDefaultPolicy(policy =>
+	{
+		policy.WithOrigins("http://localhost:5173")
+					.AllowAnyHeader()
+					.AllowAnyMethod();
+	});
+});
+
+// =============================
+// 🔧 Register Services
+// =============================
+builder.Services.AddSingleton<IMyService, MyService>();
+builder.Services.AddScoped<ScopedService>();
+builder.Services.AddTransient<TransientService>();
+
+// =============================
+// 🔧 Swagger
 // =============================
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -24,10 +56,14 @@ builder.Services.AddSwaggerGen(c =>
 var app = builder.Build();
 
 // =============================
-// 📜 Global Middleware
+// 🧱 Middleware
 // =============================
 app.UseSwagger();
 app.UseSwaggerUI();
+
+app.UseCors();            // ⬅️ Wajib sebelum auth
+app.UseAuthentication();  // ⬅️ Auth
+app.UseAuthorization();   // ⬅️ Authorization
 
 app.Use(async (context, next) =>
 {
@@ -43,28 +79,19 @@ app.Use(async (context, next) =>
 	await next();
 });
 
-// Important: Add UseRouting and UseAuthorization/UseAuthentication if you plan to use those
-// app.UseRouting();
-// app.UseAuthorization(); // Or UseAuthentication, depending on your setup
-
 // =============================
-// 🌐 Endpoints
+// 🌐 Public Endpoints
 // =============================
 app.MapGet("/", () => "hello world!");
 
 app.MapGet("/getNumber/{number}", async (int number) =>
 {
-	await Task.Delay(500); // Simulate delay
+	await Task.Delay(500);
 	return $"Hello : {number}";
 });
 
 app.MapGet("/lifetimes", (IMyService singleton, ScopedService scoped, TransientService transient) =>
 {
-	Debug.WriteLine("=== [ENDPOINT /lifetimes] ===");
-	Debug.WriteLine($"Scoped    : {scoped.Id}");
-	Debug.WriteLine($"Transient : {transient.Id}");
-	Debug.WriteLine($"Singleton : {singleton.GetInstanceId()}");
-
 	return new
 	{
 		Singleton = singleton.GetInstanceId(),
@@ -74,38 +101,66 @@ app.MapGet("/lifetimes", (IMyService singleton, ScopedService scoped, TransientS
 });
 
 // =============================
-// 🔐 Middleware dan endpoint untuk /admin (FIXED)
+// 🔐 Admin Group
 // =============================
 var adminGroup = app.MapGroup("/admin")
 		.AddEndpointFilter(async (context, next) =>
 		{
-			// This is like an inline middleware for the group
 			Debug.WriteLine("🔐 [ADMIN MIDDLEWARE AKTIF]");
-
-			// You can inject services here if needed (e.g., for logging, authorization)
-			// var myService = context.HttpContext.RequestServices.GetRequiredService<IMyService>();
-
 			return await next(context);
 		});
 
 adminGroup.MapGet("/", () => "Ini area admin.");
-// You can add more admin-specific endpoints here, and they will all use the filter above
-// adminGroup.MapGet("/dashboard", () => "Admin Dashboard!");
-
 
 // =============================
-// 🔄 POST dan PUT endpoint tambahan
+// 🔄 POST/PUT
 // =============================
 app.MapPost("/submit", (DataModel data) =>
 {
-	Debug.WriteLine($"📩 Received POST: {data.Name} - {data.Value}");
 	return Results.Ok(new { Message = "Data diterima", Data = data });
 });
 
 app.MapPut("/update/{id}", (int id, DataModel data) =>
 {
-	Debug.WriteLine($"✏️ Updated ID {id} with Name: {data.Name}, Value: {data.Value}");
 	return Results.Ok(new { Message = $"Data dengan ID {id} diperbarui", Data = data });
 });
+
+// =============================
+// 🔐 Dummy Login (local)
+// =============================
+string SECRETKEY = "secretkey";
+app.MapPost("/login", (LoginRequest guest) =>
+{
+	Dictionary<string, string> users = new()
+		{
+				{ "admin", "password123" },
+				{ "user", "userpass" }
+		};
+
+	if (users.TryGetValue(guest.Username, out var password) && password == guest.Password)
+	{
+		return Results.Ok(new { Message = "Login berhasil!" });
+	}
+	else
+	{
+		return Results.Unauthorized();
+	}
+});
+
+// =============================
+// 🔐 Protected Endpoint (Microsoft Entra ID token)
+// =============================
+app.MapGet("/secure-data", (ClaimsPrincipal user) =>
+{
+	var username = user.Identity?.Name ?? "unknown";
+
+	return Results.Ok(new
+	{
+		Message = "✅ Anda berhasil mengakses endpoint terlindungi.",
+		User = username,
+		Claims = user.Claims.Select(c => new { c.Type, c.Value })
+	});
+})
+.RequireAuthorization();
 
 app.Run();
