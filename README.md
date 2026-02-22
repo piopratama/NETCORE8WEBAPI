@@ -1,155 +1,122 @@
-# 📦 Lifetime Demo API - ASP.NET Core Minimal API
+# Lifetime Demo API - ASP.NET Core Minimal API
 
-Aplikasi ini adalah contoh sederhana dari ASP.NET Core Minimal API yang dibangun untuk mendemonstrasikan beberapa konsep fundamental dalam pengembangan web modern, termasuk:
+[![DOI](https://zenodo.org/badge/992501251.svg)](https://doi.org/10.5281/zenodo.18732528)
 
-- Dependency Injection dan berbagai jenis service lifetime (Singleton, Scoped, Transient)
-- Middleware global dan grup menggunakan Endpoint Filter
-- Endpoint GET, POST, dan PUT
-- Integrasi Swagger/OpenAPI untuk dokumentasi otomatis
+This application is a simple ASP.NET Core Minimal API project built to
+demonstrate fundamental concepts in modern web development, including:
 
----
+-   Dependency Injection and service lifetimes (Singleton, Scoped,
+    Transient)
+-   Global and group middleware using Endpoint Filters
+-   GET, POST, and PUT endpoints
+-   Swagger/OpenAPI integration for automatic documentation
 
-## 🚀 Konsep Utama
+------------------------------------------------------------------------
 
-### 1. Dependency Injection (DI) dan Service Lifetimes
+## Core Concepts
 
-ASP.NET Core menyediakan container DI bawaan yang mendukung tiga jenis lifetime:
+### 1. Dependency Injection (DI) and Service Lifetimes
 
-#### 🔁 a. Singleton
-```csharp
+#### Singleton
+
+``` csharp
 builder.Services.AddSingleton<IMyService, MyService>();
 ```
-- Hanya satu instance sepanjang masa hidup aplikasi
-- Cocok untuk konfigurasi global atau resource yang mahal
-- Contoh: `IMyService`
 
-#### 🔄 b. Scoped
-```csharp
+#### Scoped
+
+``` csharp
 builder.Services.AddScoped<ScopedService>();
 ```
-- Satu instance per HTTP request
-- Cocok untuk konteks database (e.g., EF Core DbContext)
-- Contoh: `ScopedService`
 
-#### 🌀 c. Transient
-```csharp
+#### Transient
+
+``` csharp
 builder.Services.AddTransient<TransientService>();
 ```
-- Instance baru setiap kali diminta
-- Cocok untuk service stateless dan ringan
-- Contoh: `TransientService`
 
-**🔍 Tes di endpoint `/lifetimes` untuk melihat perbedaan ID dari tiap jenis lifetime.**
+Test the `/lifetimes` endpoint to observe different service instance
+IDs.
 
----
+------------------------------------------------------------------------
 
-### 2. Middleware
+## Middleware
 
-#### 🌐 Global Middleware
-```csharp
+### Global Middleware
+
+``` csharp
 app.Use(async (context, next) => { ... });
 ```
-- Dieksekusi di semua request
-- Contoh: logging service ID di middleware global
 
-#### 🔐 Group Middleware dengan `MapGroup` dan `AddEndpointFilter`
-```csharp
+### Group Middleware
+
+``` csharp
 var adminGroup = app.MapGroup("/admin")
     .AddEndpointFilter(async (context, next) => {
-        Console.WriteLine("🔐 [ADMIN MIDDLEWARE AKTIF]");
+        Console.WriteLine("[ADMIN MIDDLEWARE ACTIVE]");
         return await next(context);
     });
 ```
-- Khusus endpoint dalam grup `/admin`
-- Lebih modular dan bersih di .NET 7/8
 
----
+------------------------------------------------------------------------
 
-### 3. Endpoint
+## Endpoints
 
-#### ✅ GET
-- `/` – Hello World
-- `/getNumber/{number}` – Tampilkan nomor
-- `/lifetimes` – Lihat ID dari service Singleton, Scoped, dan Transient
-- `/admin` – Endpoint admin dengan middleware grup
+### GET
 
-#### ➕ POST
-```http
+-   `/`
+-   `/getNumber/{number}`
+-   `/lifetimes`
+-   `/admin`
+
+### POST
+
+``` http
 POST /submit
 Content-Type: application/json
 
 {
-  "name": "Nama Pengguna",
+  "name": "User Name",
   "value": 123
 }
 ```
 
-#### ✏️ PUT
-```http
+### PUT
+
+``` http
 PUT /update/{id}
 Content-Type: application/json
 
 {
-  "name": "Nama Baru",
+  "name": "Updated Name",
   "value": 456
 }
 ```
 
----
+------------------------------------------------------------------------
 
-### 4. 📚 Swagger / OpenAPI
+## Swagger
 
-- Swagger diaktifkan dengan:
-```csharp
+Enable Swagger:
+
+``` csharp
 builder.Services.AddSwaggerGen();
 ```
-- Akses di:
-  ```
-  http://localhost:5000/swagger
-  ```
-- Anda bisa menjelajahi dan menguji semua endpoint secara interaktif
 
----
+Access: http://localhost:5000/swagger
 
-## 📂 Struktur File (Contoh)
-```
-LearnMicroservice/
-├── Models/
-│   └── DataModel.cs
-├── Services/
-│   ├── IMyService.cs
-│   ├── MyService.cs
-│   ├── ScopedService.cs
-│   └── TransientService.cs
-├── Program.cs
-└── README.md
-```
+------------------------------------------------------------------------
 
----
+## How to Run
 
-## 🧪 Cara Menjalankan
-
-```bash
+``` bash
 dotnet run
 ```
 
-Lalu akses:
-- `http://localhost:5000/` – Hello World
-- `http://localhost:5000/lifetimes` – Tes DI Lifetimes
-- `http://localhost:5000/admin` – Endpoint admin
-- `http://localhost:5000/swagger` – UI Swagger
+------------------------------------------------------------------------
 
----
+## Technologies Used
 
-## 🧠 Catatan Tambahan
-
-- Gunakan `ILogger<T>` untuk logging yang lebih baik daripada `Console.WriteLine`.
-- Gunakan tool seperti Postman atau Swagger UI untuk testing endpoint POST/PUT.
-
----
-
-## ✅ Teknologi yang Digunakan
-
-- ASP.NET Core 8
-- .NET SDK 8
-- Swagger (Swashbuckle)
+-   ASP.NET Core 8
+-   .NET SDK 8
+-   Swagger (Swashbuckle)
