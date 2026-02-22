@@ -120,3 +120,13 @@ dotnet run
 -   ASP.NET Core 8
 -   .NET SDK 8
 -   Swagger (Swashbuckle)
+
+------------------------------------------------------------------------
+
+## Citation
+
+If you use this software in academic work, please cite:
+
+Pratama, I. W. P. (2025). Lifetime Demo API - ASP.NET Core Minimal API
+(Version 1.0.0) \[Computer software\]. Zenodo.
+https://doi.org/10.5281/zenodo.18732528
